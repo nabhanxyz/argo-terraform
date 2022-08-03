@@ -31,11 +31,8 @@ RUN unzip terraform-provider-vault_${TERRAFORM_PROVIDER_VAULT}_linux_amd64.zip -
 RUN rm -f terraform-provider-vault_${TERRAFORM_PROVIDER_VAULT}_linux_amd64.zip
 
 ADD https://releases.hashicorp.com/terraform-provider-kubernetes/${TERRAFORM_PROVIDER_K8S}/terraform-provider-kubernetes_${TERRAFORM_PROVIDER_K8S}_linux_amd64.zip ./
-#https://releases.hashicorp.com/terraform-provider-kubernetes/2.12.1/terraform-provider-kubernetes_2.12.1_linux_amd64.zip
-
 RUN unzip terraform-provider-kubernetes_${TERRAFORM_PROVIDER_K8S}_linux_amd64.zip -d /home/appuser/terraform.d/plugins/linux_amd64/
 RUN rm -f terraform-provider-kubernetes_${TERRAFORM_PROVIDER_K8S}_linux_amd64.zip
-
 
 RUN chown appuser:appuser -R /home/appuser
 RUN chmod +x -R /home/appuser/terraform.d/plugins/linux_amd64/
