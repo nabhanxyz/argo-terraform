@@ -1,0 +1,123 @@
+metadata:
+  name: docker-build-push.yml
+  namespace: argo
+  labels:
+spec:
+  templates:
+    - name: main
+      inputs: {}
+      outputs: {}
+      metadata: {}
+      dag:
+        tasks:
+          - name: clone
+            template: clone
+            arguments:
+              parameters:
+                - name: repo
+                  value: '{{workflow.parameters.repo}}'
+                - name: branch
+                  value: '{{workflow.parameters.branch}}'
+          - name: image
+            template: image
+            arguments:
+              parameters:
+                - name: path
+                  value: '{{workflow.parameters.path}}'
+                - name: image
+                  value: '{{workflow.parameters.image}}'
+                - name: account
+                  value: '{{workflow.parameters.account}}'
+                - name: tag
+                  value: '{{workflow.parameters.tag}}'
+            depends: clone
+    - name: clone
+      inputs:
+        parameters:
+          - name: repo
+          - name: branch
+      outputs: {}
+      metadata: {}
+      container:
+        name: ''
+        image: 'alpine/git:v2.26.2'
+        command:
+          - git
+        args:
+          - clone
+          - '{{inputs.parameters.repo}}'
+          - .
+        workingDir: /work
+        resources: {}
+        volumeMounts:
+          - name: work
+            mountPath: /work
+    - name: image
+      inputs:
+        parameters:
+          - name: path
+          - name: image
+          - name: tag
+          - name: account
+      outputs: {}
+      metadata: {}
+      container:
+        name: ''
+        image: 'moby/buildkit:v0.9.3-rootless'
+        command:
+          - buildctl-daemonless.sh
+        args:
+          - build
+          - '--frontend'
+          - dockerfile.v0
+          - '--local'
+          - context=.
+          - '--local'
+          - dockerfile=.
+          - '--output'
+          - >-
+            type=image,name=docker.io/{{inputs.parameters.account}}/{{inputs.parameters.image}}:{{inputs.parameters.tag}},push=true
+        workingDir: '/work/{{inputs.parameters.path}}'
+        env:
+          - name: BUILDKITD_FLAGS
+            value: '--oci-worker-no-process-sandbox'
+          - name: DOCKER_CONFIG
+            value: /.docker
+        resources: {}
+        volumeMounts:
+          - name: work
+            mountPath: /work
+          - name: docker-config
+            mountPath: /.docker
+        securityContext:
+          privileged: true
+      volumes:
+        - name: docker-config
+          secret:
+            secretName: docker-config
+  entrypoint: main
+  arguments:
+    parameters:
+      - name: repo
+        value: 'https://github.com/nabhanxyz/argo-terraform'
+      - name: branch
+        value: main
+      - name: path
+        value: /
+      - name: account
+        value: mikenabhan
+      - name: image
+        value: argo-terraform
+      - name: tag
+        value: dev
+  volumeClaimTemplates:
+    - metadata:
+        name: work
+        creationTimestamp: null
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 64Mi
+      status: {}
